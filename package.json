@@ -19,6 +19,5 @@
     "dialogflow": "^0.6.0",
     "dialogflow-fulfillment": "^0.5.0",
     "mysql": "2.18.1",
-    "axios": "0.18.0",
-  }
+    "axios": "0.18.0", }
 }
