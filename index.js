@@ -1,11 +1,10 @@
-// See https://github.com/dialogflow/dialogflow-fulfillment-nodejs
-// for Dialogflow fulfillment library docs, samples, and to report issues
 'use strict';
  
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
 const {Card, Suggestion} = require('dialogflow-fulfillment');
 const mysql = require ('mysql'); 							
+ 
 process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
  
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
@@ -22,37 +21,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     agent.add(`I'm sorry, can you try again?`);
   }
 
-  // // Uncomment and edit to make your own intent handler
-  // // uncomment `intentMap.set('your intent name here', yourFunctionHandler);`
-  // // below to get this function to be run when a Dialogflow intent is matched
-  // function yourFunctionHandler(agent) {
-  //   agent.add(`This message is from Dialogflow's Cloud Functions for Firebase editor!`);
-  //   agent.add(new Card({
-  //       title: `Title: this is a card title`,
-  //       imageUrl: 'https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png',
-  //       text: `This is the body text of a card.  You can even use line\n  breaks and emoji! 💁`,
-  //       buttonText: 'This is a button',
-  //       buttonUrl: 'https://assistant.google.com/'
-  //     })
-  //   );
-  //   agent.add(new Suggestion(`Quick Reply`));
-  //   agent.add(new Suggestion(`Suggestion`));
-  //   agent.setContext({ name: 'weather', lifespan: 2, parameters: { city: 'Rome' }});
-  // }
-
-  // // Uncomment and edit to make your own Google Assistant intent handler
-  // // uncomment `intentMap.set('your intent name here', googleAssistantHandler);`
-  // // below to get this function to be run when a Dialogflow intent is matched
-  // function googleAssistantHandler(agent) {
-  //   let conv = agent.conv(); // Get Actions on Google library conv instance
-  //   conv.ask('Hello from the Actions on Google client library!') // Use Actions on Google library
-  //   agent.add(conv); // Add Actions on Google library responses to your agent's response
-  // }
-  // // See https://github.com/dialogflow/fulfillment-actions-library-nodejs
-  // // for a complete Dialogflow fulfillment library Actions on Google client library v2 integration sample
-
-  // Run the proper function handler based on the matched Dialogflow intent name
-  function connectToDatabase(){
+  
+   function connectToDatabase(){
     const connection = mysql.createConnection({
       host     : '213.190.6.11',
       user     : 'u889550350_LuisGomez',
@@ -63,6 +33,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
        connection.connect();
        resolve(connection);
     });
+     
   }
   function queryDatabase(connection){
     return new Promise((resolve, reject) => {
@@ -71,24 +42,124 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       });
     });
   }
-  
-   function handleReadFromMySQL(agent){
+  function insertIntoDatabase(connection, data){
+    return new Promise((resolve, reject) => {
+      connection.query('INSERT INTO Clientes SET ?', data, (error, results, fields) => {
+        resolve(results);
+      });
+    });
+  }
+  function insertIntoMaquila(connection, data){
+    return new Promise((resolve, reject) => {
+      connection.query('INSERT INTO Maquila SET ?', data, (error, results, fields) => {
+        resolve(results);
+      });
+    });
+  }
+  function insertIntoImportaciones(connection, data){
+    return new Promise((resolve, reject) => {
+      connection.query('INSERT INTO Importaciones SET ?', data, (error, results, fields) => {
+        resolve(results);
+      });
+    });
+  }
+  function insertIntoSanitizacion(connection, data){
+    return new Promise((resolve, reject) => {
+      connection.query('INSERT INTO Sanitizacion SET ?', data, (error, results, fields) => {
+        resolve(results);
+      });
+    });
+  }
+  function insertIntoFacturacion(connection, data){
+    return new Promise((resolve, reject) => {
+      connection.query('INSERT INTO Facturacion SET ?', data, (error, results, fields) => {
+        resolve(results);
+      });
+    });
+  }
+    function handleWritedatosPersonales(agent){
+    const data = {
+      Nombre: agent.parameters.nombre +" "+ agent.parameters.ApellidoP +" "+ agent.parameters.ApellidoM,
+      Codigo_postal: agent.parameters.Cp,
+      Correo: agent.parameters.email
+    };
     return connectToDatabase()
     .then(connection => {
-      return queryDatabase(connection)
-      .then(result => {
-        console.log(result);
-        agent.add(`Nombre: ${result[0].Nombre} and Genero: ${result[0].Genero}`);
+      return insertIntoDatabase(connection, data)
+      .then(result => {       
         connection.end();
       });
     });
   }
-  
+  function handleWriteMaquila(agent){
+    const data = {
+      producto: agent.parameters.ProdMaq,
+      cantidad: agent.parameters.CantM,
+      nombre_cliente: agent.parameters.nombre +" "+ agent.parameters.ApellidoP +" "+ agent.parameters.ApellidoM,
+      correo_cliente: agent.parameters.email
+    };
+    return connectToDatabase()
+    .then(connection => {
+      return insertIntoMaquila(connection, data)
+      .then(result => {       
+        connection.end();
+      });
+    });
+  }
+  function handleWriteImportaciones(agent){
+    const data = {
+      producto: agent.parameters.prodImp,
+      cantidad: agent.parameters.cantImp,
+      nombre_cliente: agent.parameters.nombre,
+      correo_cliente: agent.parameters.email
+    };
+    return connectToDatabase()
+    .then(connection => {
+      return insertIntoImportaciones(connection, data)
+      .then(result => {       
+        connection.end();
+      });
+    });
+  }
+  function handleWriteSanitizacion(agent){
+    const data = {
+      tamaño_superficie: agent.parameters.superficieS,
+      tipo_superfice: agent.parameters.tipoS,
+      nombre_cliente: agent.parameters.nombre,
+      correo_cliente: agent.parameters.email
+    };
+    return connectToDatabase()
+    .then(connection => {
+      return insertIntoSanitizacion(connection, data)
+      .then(result => {       
+        connection.end();
+      });
+    });
+  }
+  function handleWriteFacturacion(agent){
+    const data = {
+      ticket: agent.parameters.ticket,
+      razon_social: agent.parameters.razonSoc,
+      rfc:agent.parameters.RFC,
+      forma_de_pago:agent.parameters.FormaPago,
+      uso_de_factura:agent.parameters.UsoFact,
+      correo:agent.parameters.email,
+      nombre_cliente: agent.parameters.nombre,
+    };
+    return connectToDatabase()
+    .then(connection => {
+      return insertIntoImportaciones(connection, data)
+      .then(result => {       
+        connection.end();
+      });
+    });
+  }
   let intentMap = new Map();
   intentMap.set('Default Welcome Intent', welcome);
   intentMap.set('Default Fallback Intent', fallback);
-  intentMap.set('DataMysql', handleReadFromMySQL);
-  // intentMap.set('your intent name here', yourFunctionHandler);
-  // intentMap.set('your intent name here', googleAssistantHandler);
+  intentMap.set('datosPersonales', handleWritedatosPersonales);
+  intentMap.set('Opc3_Servicios_Opc2', handleWriteMaquila);
+  intentMap.set('Opc3_Servicios_Opc3', handleWriteImportaciones);
+  intentMap.set('Opc3_Servicios_Opc1', handleWriteFacturacion);
   agent.handleRequest(intentMap);
 });
